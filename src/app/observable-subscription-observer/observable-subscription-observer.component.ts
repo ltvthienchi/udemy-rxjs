@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {from, fromEvent, Observable, of, Subscription} from 'rxjs';
+import {forkJoin, from, fromEvent, Observable, of, Subscription, timer, zip} from 'rxjs';
 import {ajax} from 'rxjs/ajax';
 import {filter, map} from 'rxjs/operators';
 
@@ -25,7 +25,12 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
     // this.exampleFour();
     // this.exampleFive();
     // this.exampleSix();
-    this.exampleSeven();
+    // this.exampleSeven();
+    // this.exampleEight();
+    // this.exampleNine();
+    // this.forkJoinExample();
+    this.forkJoinErrorExample();
+    // this.zipExample();
   }
 
   private initValue(): void {
@@ -38,11 +43,13 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
     this.array = [1, 2, 3];
 
     // Set observer
-    this.observer = {
-      next: value => console.log('Next:', value),
-      error: err => console.log('Error:', err),
-      complete: () => console.log('Completed'),
-    };
+    this.observer = ((nextLabel = 'Next') => {
+      return {
+        next: value => console.log(nextLabel + ':', value),
+            error: err => console.log('Error:', err),
+          complete: () => console.log('Completed'),
+      };
+    });
   }
 
   public exampleOne(): void {
@@ -222,4 +229,95 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
     setTimeout(_ => ownClick.unsubscribe(), 3000);
   }
 
+  // TODO: Create Function: Timer/Timeout
+  public exampleEight(): void {
+    console.log('Start!');
+    const timer$ = new Observable<number>(subscriber => {
+      const timeoutId = setTimeout(() => {
+        console.log('Timeout!');
+        subscriber.next(0);
+        subscriber.complete();
+      }, 2000);
+      return () => clearTimeout(timeoutId);
+    });
+    // const subscription = timer(2000).subscribe(this.observer);
+    const subscription = timer$.subscribe(this.observer);
+    setTimeout(() => {
+      subscription.unsubscribe();
+      console.log('Unsubscribe');
+    }, 1000);
+  }
+
+  // TODO: Create Function: interval
+  public exampleNine(): void {
+    const interval$ = new Observable<number>(subscriber => {
+      let counter = 0;
+      const intervalId = setInterval(() => {
+        counter += (1000 / 1000);
+        subscriber.next(counter);
+      }, 1000);
+      return () => clearInterval(intervalId);
+    });
+    // const subscription = interval(2000).subscribe(this.observer);
+    const subscription = interval$.subscribe(this.observer);
+    setTimeout(() => {
+      subscription.unsubscribe();
+      console.log('Unsubscribe');
+    }, 5000);
+  }
+
+  // TODO: Create Function: forkJoin
+  public forkJoinExample(): void {
+    const randomName$ = ajax('https://random-data-api.com/api/name/random_name');
+    const randomNation$ = ajax('https://random-data-api.com/api/nation/random_nation');
+    const randomFood$ = ajax('https://random-data-api.com/api/food/random_food');
+    forkJoin(randomName$, randomNation$, randomFood$).subscribe(
+        ([ajaxName, ajaxNation, ajaxFood]) => {
+      console.log(`My name is ${ajaxName.response.first_name} from ${ajaxNation.response.capital} and likes to eat ${ajaxFood.response.dish}`);
+    });
+  }
+
+  // TODO: Create Function: forkJoin Error
+  public forkJoinErrorExample(): void {
+    const a$ = new Observable<string>(subscriber => {
+      setTimeout(() => {
+        subscriber.next('A value');
+        subscriber.complete();
+      }, 3000);
+      return () => console.log('Teardown A!');
+    });
+
+    const b$ = new Observable<string>(subscriber => {
+      setTimeout(() => {
+        subscriber.error('Failure!');
+        // subscriber.next('B value');
+        // subscriber.complete();
+      }, 5000);
+      return () => console.log('Teardown B!');
+    });
+
+    // forkJoin(a$, b$).subscribe(res => console.log(res), err => console.log(err));
+    zip(a$, b$).subscribe(res => console.log(res), err => console.log(err));
+  }
+
+  // TODO: Operator Function: Zip
+  public zipExample(): void {
+    const randomName$ = ajax('https://random-data-api.com/api/name/random_name');
+    const randomNation$ = ajax('https://random-data-api.com/api/nation/random_nation');
+    const randomFood$ = ajax('https://random-data-api.com/api/food/random_food');
+    zip(randomName$, randomNation$, randomFood$).subscribe(
+        ([ajaxName, ajaxNation, ajaxFood]) => {
+          console.log(`My name is ${ajaxName.response.first_name} from ${ajaxNation.response.capital} and likes to eat ${ajaxFood.response.dish}`);
+        });
+
+    // get X/Y coordinates of drag start/finish (mouse down/up)
+    const documentEvent = eventName =>
+        fromEvent(document, eventName).pipe(
+            map((e: MouseEvent) => ({ x: e.clientX, y: e.clientY }))
+        );
+
+    zip(documentEvent('mousedown'), documentEvent('mouseup')).subscribe(e =>
+        console.log(JSON.stringify(e))
+    );
+  }
 }
