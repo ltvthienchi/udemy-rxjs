@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import {forkJoin, from, fromEvent, Observable, of, Subscription, timer, zip} from 'rxjs';
+import {combineLatest, forkJoin, from, fromEvent, Observable, of, Subscription, timer, zip} from 'rxjs';
 import {ajax} from 'rxjs/ajax';
-import {filter, map} from 'rxjs/operators';
+import {combineAll, filter, map} from 'rxjs/operators';
 
 @Component({
   selector: 'app-observable-subscription-observer',
@@ -24,13 +24,14 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
     // this.exampleThree();
     // this.exampleFour();
     // this.exampleFive();
-    // this.exampleSix();
+    this.exampleSix();
     // this.exampleSeven();
     // this.exampleEight();
     // this.exampleNine();
     // this.forkJoinExample();
-    this.forkJoinErrorExample();
+    // this.forkJoinErrorExample();
     // this.zipExample();
+    // this.combineLatestExample();
   }
 
   private initValue(): void {
@@ -46,7 +47,7 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
     this.observer = ((nextLabel = 'Next') => {
       return {
         next: value => console.log(nextLabel + ':', value),
-            error: err => console.log('Error:', err),
+          error: err => console.log('Error:', err),
           complete: () => console.log('Completed'),
       };
     });
@@ -183,7 +184,7 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
     }
   }
 
-  // TODO: Create Functions: From
+  // TODO: Create Functions: From & convert promise to observable
   public exampleSix(): void {
     const array = [1, 2, 3];
     const someString = 'world';
@@ -275,6 +276,9 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
         ([ajaxName, ajaxNation, ajaxFood]) => {
       console.log(`My name is ${ajaxName.response.first_name} from ${ajaxNation.response.capital} and likes to eat ${ajaxFood.response.dish}`);
     });
+    forkJoin([of('ABC'), timer(1000)]).subscribe(([text, time]) => {
+      console.log(text, time);
+    });
   }
 
   // TODO: Create Function: forkJoin Error
@@ -283,20 +287,17 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
       setTimeout(() => {
         subscriber.next('A value');
         subscriber.complete();
-      }, 3000);
+      }, 1000);
       return () => console.log('Teardown A!');
     });
 
     const b$ = new Observable<string>(subscriber => {
       setTimeout(() => {
         subscriber.error('Failure!');
-        // subscriber.next('B value');
-        // subscriber.complete();
-      }, 5000);
+      }, 3000);
       return () => console.log('Teardown B!');
     });
 
-    // forkJoin(a$, b$).subscribe(res => console.log(res), err => console.log(err));
     zip(a$, b$).subscribe(res => console.log(res), err => console.log(err));
   }
 
@@ -319,5 +320,25 @@ export class ObservableSubscriptionObserverComponent implements OnInit {
     zip(documentEvent('mousedown'), documentEvent('mouseup')).subscribe(e =>
         console.log(JSON.stringify(e))
     );
+  }
+
+  // TODO: Create Function: CombineLatest
+  public combineLatestExample(): void {
+    const temperatureInput = document.getElementById('temperature-input');
+    const conversionDropdown = document.getElementById('conversion-dropdown');
+    const resultText = document.getElementById('result-text');
+    const temperatureInput$ = fromEvent(temperatureInput, 'input');
+    const conversionDropDown$ = fromEvent(conversionDropdown, 'input');
+    combineLatest(temperatureInput$, conversionDropDown$).subscribe(([temperatureEvent, conversionEvent]) => {
+      const temperature = Number(temperatureEvent.target['value']);
+      const conversion = conversionEvent.target['value'];
+      let result: number;
+      if (conversion === 'f-to-c') {
+        result = (temperature - 32) * 5 / 9;
+      } else {
+        result = temperature * 9 / 5 + 32;
+      }
+      resultText.innerText = Math.round(result).toString();
+    });
   }
 }
