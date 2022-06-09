@@ -92,5 +92,6 @@ export class OperatorObservableComponent implements OnInit {
     source$.pipe(
         concatMap(value => of(1, 2))
     ).subscribe(this.observer);
+    //
   }
 }
