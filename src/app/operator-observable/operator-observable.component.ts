@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {EMPTY, fromEvent, interval, observable, Observable, Observer, of} from 'rxjs';
-import {catchError, debounceTime, filter, map, take, tap} from 'rxjs/operators';
+import {catchError, debounceTime, filter, map, take, tap, concatMap} from 'rxjs/operators';
 
 @Component({
   selector: 'app-operator-observable',
@@ -80,6 +80,17 @@ export class OperatorObservableComponent implements OnInit {
     failureObservable$.pipe(
         // catchError(error => of(error)),
         catchError(error => EMPTY),
+    ).subscribe(this.observer);
+  }
+
+  demoFlatteningOperators(): void {
+    const source$ = new Observable(subscriber => {
+      setTimeout(() => subscriber.next('A'), 1000);
+      setTimeout(() => subscriber.next('B'), 3000);
+    });
+
+    source$.pipe(
+        concatMap(value => of(1, 2))
     ).subscribe(this.observer);
   }
 }
