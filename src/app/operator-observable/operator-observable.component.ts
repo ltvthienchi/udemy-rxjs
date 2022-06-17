@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import {EMPTY, fromEvent, interval, observable, Observable, Observer, of} from 'rxjs';
 import {catchError, debounceTime, filter, map, take, tap, concatMap} from 'rxjs/operators';
+import {ajax, AjaxResponse} from "rxjs/ajax";
 
 @Component({
   selector: 'app-operator-observable',
@@ -20,7 +21,8 @@ export class OperatorObservableComponent implements OnInit {
     // this.demoMap();
     // this.demoTap();
     // this.demoDebounceTime();
-    this.demoCatchErrorAndEMPTY();
+    // this.demoCatchErrorAndEMPTY();
+    this.dynamicHttpRequest();
   }
 
   private initValue(): void {
@@ -91,6 +93,22 @@ export class OperatorObservableComponent implements OnInit {
 
     source$.pipe(
         concatMap(value => of(1, 2))
+    ).subscribe(this.observer);
+  }
+
+  dynamicHttpRequest(): void {
+    const endpointInput: HTMLInputElement = document.querySelector('input#endpoint');
+    const fetchButton = document.querySelector('button#fetch');
+    fromEvent(fetchButton, 'click').pipe(
+        map(_ => endpointInput.value),
+        concatMap(value =>
+            ajax(`https://random-data-api.com/api/${value}/random_${value}`).pipe(
+                // catchError(_ => EMPTY),
+                catchError(err => of('Inner: ' + err))
+            )
+        ),
+        map((value: AjaxResponse) => value),
+        // catchError(err => EMPTY),
     ).subscribe(this.observer);
   }
 }
